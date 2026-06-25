@@ -3,7 +3,7 @@ Functions necessary for running a virtual cookie shop.
 See README.md for instructions.
 Do not run this file directly.  Rather, run main.py instead.
 """
-
+import csv
 
 def bake_cookies(filepath):
     """
@@ -15,7 +15,19 @@ def bake_cookies(filepath):
     :param filepath: The path to the data file.
     :returns: A list of all cookie data, where each cookie is represented as a dictionary.
     """
-    # write your code for this function below here.
+    cookies = []
+    with open(filepath, mode='r') as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            price = row["price"].replace("$", "")
+            cookie = {
+                'id': int(row['id']),
+                'title': row['title'],
+                'description': row['description'],
+                "price": round(float(price), 2),
+            }
+            cookies.append(cookie)
+    return cookies
 
 
 def welcome():
@@ -26,7 +38,8 @@ def welcome():
       We feed each according to their need.
 
     """
-    # write your code for this function below this line
+    print("Welcome to the Python Cookie Shop!")
+    print("We feed each according to their need.")
 
 
 def display_cookies(cookies):
@@ -47,7 +60,15 @@ def display_cookies(cookies):
 
     :param cookies: a list of all cookies in the shop, where each cookie is represented as a dictionary.
     """
-    # write your code for this function below this line
+    if not cookies:
+        print("Sorry, no cookies are available right now.")
+        return
+    print("Here are the cookies we have in the shop for you:\n")
+    for cookie in cookies:
+        print(f"#{cookie['id']} - {cookie['title']}")
+        print(f"{cookie['description']}")
+        print(f"Price: ${cookie['price']:.2f}")
+        print()
 
 
 def get_cookie_from_dict(id, cookies):
@@ -58,7 +79,10 @@ def get_cookie_from_dict(id, cookies):
     :param cookies: a list of all cookies in the shop, where each cookie is represented as a dictionary.
     :returns: the matching cookie, as a dictionary
     """
-    # write your code for this function below this line
+    for cookie in cookies:
+        if cookie['id'] == id:
+            return cookie
+    return None
 
 
 def solicit_quantity(id, cookies):
@@ -76,7 +100,25 @@ def solicit_quantity(id, cookies):
     :param cookies: a list of all cookies in the shop, where each cookie is represented as a dictionary.
     :returns: The quantity the user entered, as an integer.
     """
-    # write your code for this function below this line
+    cookie = get_cookie_from_dict(id, cookies)
+    if not cookie:
+        print("Oops, that cookie doesn't exist.")
+        return None 
+    title = cookie['title']
+    price = cookie['price']
+    while True:
+        try:
+            quantity = input(f"My favorite! How many {title}s would you like? ")
+            quantity = int(quantity)
+            if quantity <= 0:
+                print("Please enter a positive integer for quantity.")
+                continue
+            break
+        except ValueError:
+            print("Please enter a valid integer for quantity.")
+    subtotal = quantity * price
+    print(f"Your subtotal for {quantity} {title} is ${subtotal:.2f}.")
+    return quantity
 
 
 def solicit_order(cookies):
@@ -95,7 +137,40 @@ def solicit_order(cookies):
 
     :returns: A list of the ids and quantities of each cookies the user wants to order.
     """
-    # write your code for this function below this line
+    order = []
+    exit_words = ['finished', 'done', 'quit', 'exit']
+    while True:
+        user_input = input("Please enter the number of any cookie you would like to purchase: ").strip().lower()
+        if user_input in exit_words:
+            return order  
+        try:
+            cookie_id = int(user_input)
+        except ValueError:
+            print("Please enter a valid integer for the cookie id, or type 'finished' to end.")
+            continue
+        if get_cookie_from_dict(cookie_id, cookies) is None:
+            print("Sorry, that is not a valid cookie id. Please try again.")
+            continue
+        quantity = solicit_quantity(cookie_id, cookies)
+        if quantity is not None:
+            order.append({'id': cookie_id, 'quantity': quantity})
+        break  
+    while True:
+        user_input = input('Please enter the number of any other cookie you would like to purchase (type "finished" if finished with your order): ').strip().lower()
+        if user_input in exit_words:
+            break
+        try:
+            cookie_id = int(user_input)
+        except ValueError:
+            print("Please enter a valid integer for the cookie id, or type 'finished' to end.")
+            continue
+        if get_cookie_from_dict(cookie_id, cookies) is None:
+            print("Sorry, that is not a valid cookie id. Please try again.")
+            continue
+        quantity = solicit_quantity(cookie_id, cookies)
+        if quantity is not None:
+            order.append({'id': cookie_id, 'quantity': quantity})
+    return order
 
 
 def display_order_total(order, cookies):
@@ -117,7 +192,23 @@ def display_order_total(order, cookies):
         -The Python Cookie Shop Robot.
 
     """
-    # write your code for this function below this line
+    if not order:
+        print("You didn't order anything. Goodbye!")
+        return
+    print("\nThank you for your order. You have ordered:\n")
+    total = 0.0
+    for item in order:
+        cookie = get_cookie_from_dict(item['id'], cookies)
+        if cookie:
+            qty = item['quantity']
+            print(f"-{qty} {cookie['title']}")
+            total += qty * cookie['price']
+        else:
+            print(f"-{item['quantity']} of unknown cookie (id {item['id']})")
+    print(f"\nYour total is ${total:.2f}.")
+    print("Please pay with Bitcoin before picking-up.\n")
+    print("Thank you!")
+    print("-The Python Cookie Shop Robot.")
 
 
 def run_shop(cookies):
@@ -128,7 +219,6 @@ def run_shop(cookies):
 
     :param cookies: A list of all cookies in the shop, where each cookie is represented as a dictionary.
     """
-    # write your code for this function below here.
     welcome()
     display_cookies(cookies)
     order = solicit_order(cookies)
